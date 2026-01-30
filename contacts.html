@@ -73,26 +73,102 @@
         <div class="panel reveal" id="form">
           <div class="smallcaps">Форма</div>
           <h2 style="margin-top:10px">Заявка</h2>
-          <p style="margin-top:12px">Заповни — згодом ця форма буде відправляти в CRM/Telegram/Email.</p>
+          <p style="margin-top:12px">Заповни — заявка піде в Telegram.</p>
 
-          <form style="margin-top:16px;display:grid;gap:12px" onsubmit="return false;">
-            <input id="name" placeholder="Імʼя"
+          <form id="leadForm" style="margin-top:16px;display:grid;gap:12px">
+            <input id="name" placeholder="Імʼя" required
               style="padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);color:var(--text)" />
-            <input id="phone" placeholder="Телефон"
+
+            <input id="phone" placeholder="Телефон" required
               style="padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);color:var(--text)" />
+
             <input id="car" placeholder="Авто (марка/модель)"
               style="padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);color:var(--text)" />
+
             <textarea id="msg" rows="4" placeholder="Коротко опиши проблему"
               style="padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);color:var(--text)"></textarea>
 
             <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">
-              <a class="btn primary" href="#" onclick="alert('Дизайн-версія. Далі підключимо бекенд.');">Надіслати</a>
+              <button class="btn primary" id="sendBtn" type="submit">Надіслати</button>
+
               <a class="btn"
-                href="mailto:service@apexautolab.ua?subject=Заявка%20Apex%20Autolab&body=Імʼя:%20%0AТелефон:%20%0AАвто:%20%0AПроблема:%20%0A">Відкрити
-                Email →</a>
+                href="mailto:service@apexautolab.ua?subject=Заявка%20Apex%20Autolab&body=Імʼя:%20%0AТелефон:%20%0AАвто:%20%0AПроблема:%20%0A">
+                Відкрити Email →
+              </a>
+
+              <span id="leadStatus" style="align-self:center;color:rgba(233,236,244,.75);font-size:14px;"></span>
             </div>
           </form>
+
+          <script>
+            (function () {
+              const API_URL = "https://apex-95tz.onrender.com/api/lead";
+
+              const form = document.getElementById("leadForm");
+              const btn = document.getElementById("sendBtn");
+              const statusEl = document.getElementById("leadStatus");
+
+              if (!form) return;
+
+              function setStatus(text) {
+                if (statusEl) statusEl.textContent = text || "";
+              }
+
+              form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                const name = (document.getElementById("name")?.value || "").trim();
+                const phone = (document.getElementById("phone")?.value || "").trim();
+                const car = (document.getElementById("car")?.value || "").trim();
+                const msg = (document.getElementById("msg")?.value || "").trim();
+
+                if (!name || !phone) {
+                  alert("Заповни імʼя та телефон.");
+                  return;
+                }
+
+                const oldText = btn ? btn.textContent : "";
+                if (btn) {
+                  btn.disabled = true;
+                  btn.textContent = "Відправляю...";
+                }
+                setStatus("Відправка…");
+
+                try {
+                  const res = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, phone, car, msg }),
+                  });
+
+                  const data = await res.json().catch(() => ({}));
+
+                  if (!res.ok || data.ok !== true) {
+                    console.error("API error:", data);
+                    setStatus("Помилка. Дивись Render Logs.");
+                    alert("Помилка відправки. Перевір Render Logs / CORS.");
+                    return;
+                  }
+
+                  setStatus("Відправлено ✅");
+                  alert("Заявка відправлена ✅");
+                  form.reset();
+                } catch (err) {
+                  console.error(err);
+                  setStatus("Нема звʼязку з сервером (Render).");
+                  alert("Не вдалося підключитися до сервера (Render). Якщо це GitHub Pages — можливо CORS.");
+                } finally {
+                  if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                  }
+                  setTimeout(() => setStatus(""), 6000);
+                }
+              });
+            })();
+          </script>
         </div>
+
       </div>
     </div>
   </section>
