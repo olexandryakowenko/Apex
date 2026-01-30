@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Apex Autolab — Адмінка</title>
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <style>
+        .card {
+            background: rgba(255, 255, 255, .03);
+            border: 1px solid rgba(255, 255, 255, .10);
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .grow {
+            flex: 1;
+            min-width: 240px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .03);
+            color: var(--text);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            text-align: left;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, .03);
+            cursor: pointer;
+        }
+
+        .muted {
+            color: rgba(233, 236, 244, .65);
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            font-size: 12px;
+        }
+
+        .right {
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="wrap">
+                <a class="brand" href="index.html">
+                    <img src="assets/images/logo.png" alt="Apex Autolab logo" />
+                </a>
+                <nav class="nav">
+                    <a href="index.html">Головна</a>
+                    <a href="contacts.html">Контакти</a>
+                    <a href="admin.html">Адмінка</a>
+                </nav>
+                <div class="header-cta">
+                    <button class="btn" id="logoutBtn" style="display:none;">Вийти</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero" style="min-height:36vh;padding:72px 0 44px">
+        <div class="container">
+            <div class="inner">
+                <div class="smallcaps">Admin</div>
+                <h1 style="font-size:52px;margin-top:10px">Заявки</h1>
+                <p class="muted">Вхід через логін/пароль з Render ENV. Дані беруться з Render API.</p>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container" style="display:grid;gap:16px">
+
+            <!-- LOGIN -->
+            <div class="card" id="loginCard">
+                <h2 style="margin:0 0 10px">Вхід</h2>
+                <div class="row">
+                    <div class="grow">
+                        <label class="muted">API Base (Render)</label>
+                        <input id="apiBase" placeholder="https://apex-95tz.onrender.com"
+                            value="https://apex-95tz.onrender.com" />
+                    </div>
+                </div>
+                <div class="row" style="margin-top:10px">
+                    <div class="grow">
+                        <label class="muted">Логін</label>
+                        <input id="username" placeholder="admin" />
+                    </div>
+                    <div class="grow">
+                        <label class="muted">Пароль</label>
+                        <input id="password" type="password" placeholder="••••••••" />
+                    </div>
+                </div>
+                <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                    <button class="btn primary" id="loginBtn">Увійти</button>
+                    <span class="muted" id="loginStatus"></span>
+                </div>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div class="card" id="dashCard" style="display:none;">
+                <div class="row" style="align-items:flex-end;">
+                    <div class="grow">
+                        <label class="muted">Пошук (телефон/ім’я/авто/текст)</label>
+                        <input id="q" placeholder="наприклад: +38063 або BMW" />
+                    </div>
+                    <div style="min-width:220px;">
+                        <label class="muted">Статус</label>
+                        <select id="statusFilter">
+                            <option value="">усі</option>
+                            <option value="new">new</option>
+                            <option value="in_work">in_work</option>
+                            <option value="done">done</option>
+                            <option value="spam">spam</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn primary" id="refreshBtn">Оновити</button>
+                    </div>
+                </div>
+
+                <div style="margin-top:14px;overflow:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:90px;">ID</th>
+                                <th style="width:220px;">Дата</th>
+                                <th style="width:220px;">Телефон</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leadsBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="muted" style="margin-top:10px" id="listStatus"></div>
+            </div>
+
+            <!-- DETAILS -->
+            <div class="card" id="detailsCard" style="display:none;">
+                <div class="row" style="align-items:flex-end;">
+                    <div class="grow">
+                        <h2 style="margin:0;">Заявка <span id="leadId"></span></h2>
+                        <div class="muted" id="leadMeta" style="margin-top:6px;"></div>
+                    </div>
+                    <div class="right">
+                        <button class="btn" id="closeDetailsBtn">Закрити</button>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:14px;">
+                    <div class="grow">
+                        <label class="muted">Імʼя</label>
+                        <input id="dName" disabled />
+                    </div>
+                    <div class="grow">
+                        <label class="muted">Телефон</label>
+                        <input id="dPhone" disabled />
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
+                    <div class="grow">
+                        <label class="muted">Авто</label>
+                        <input id="dCar" disabled />
+                    </div>
+                    <div style="min-width:220px;">
+                        <label class="muted">Статус</label>
+                        <select id="dStatus">
+                            <option value="new">new</option>
+                            <option value="in_work">in_work</option>
+                            <option value="done">done</option>
+                            <option value="spam">spam</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <label class="muted">Повідомлення</label>
+                    <textarea id="dMsg" rows="4" disabled></textarea>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <label class="muted">Нотатка (внутрішня)</label>
+                    <textarea id="dNote" rows="3" placeholder="що робимо, коли дзвонили, що домовились…"></textarea>
+                </div>
+
+                <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                    <button class="btn primary" id="saveBtn">Зберегти</button>
+                    <span class="muted" id="saveStatus"></span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        (function () {
+            const $ = (s) => document.querySelector(s);
+
+            const loginCard = $("#loginCard");
+            const dashCard = $("#dashCard");
+            const detailsCard = $("#detailsCard");
+            const logoutBtn = $("#logoutBtn");
+
+            const apiBaseEl = $("#apiBase");
+            const userEl = $("#username");
+            const passEl = $("#password");
+            const loginBtn = $("#loginBtn");
+            const loginStatus = $("#loginStatus");
+
+            const qEl = $("#q");
+            const statusFilterEl = $("#statusFilter");
+            const refreshBtn = $("#refreshBtn");
+            const leadsBody = $("#leadsBody");
+            const listStatus = $("#listStatus");
+
+            const leadIdEl = $("#leadId");
+            const leadMetaEl = $("#leadMeta");
+            const dName = $("#dName");
+            const dPhone = $("#dPhone");
+            const dCar = $("#dCar");
+            const dMsg = $("#dMsg");
+            const dStatus = $("#dStatus");
+            const dNote = $("#dNote");
+            const saveBtn = $("#saveBtn");
+            const saveStatus = $("#saveStatus");
+            const closeDetailsBtn = $("#closeDetailsBtn");
+
+            let token = sessionStorage.getItem("apex_admin_token") || "";
+            let apiBase = sessionStorage.getItem("apex_api_base") || apiBaseEl.value;
+            apiBaseEl.value = apiBase;
+
+            function api(path) {
+                return apiBase.replace(/\/$/, "") + path;
+            }
+
+            function setMode(isAuthed) {
+                loginCard.style.display = isAuthed ? "none" : "block";
+                dashCard.style.display = isAuthed ? "block" : "none";
+                logoutBtn.style.display = isAuthed ? "inline-flex" : "none";
+                if (!isAuthed) detailsCard.style.display = "none";
+            }
+
+            async function doLogin() {
+                apiBase = apiBaseEl.value.trim();
+                sessionStorage.setItem("apex_api_base", apiBase);
+
+                const username = userEl.value.trim();
+                const password = passEl.value;
+
+                loginStatus.textContent = "Вхід…";
+
+                const res = await fetch(api("/api/admin/login"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.token) {
+                    loginStatus.textContent = "Помилка входу.";
+                    console.error("login error:", data);
+                    return;
+                }
+
+                token = data.token;
+                sessionStorage.setItem("apex_admin_token", token);
+                loginStatus.textContent = "Ок ✅";
+
+                setMode(true);
+                await loadLeads();
+            }
+
+            async function loadLeads() {
+                listStatus.textContent = "Завантаження…";
+                leadsBody.innerHTML = "";
+
+                const q = qEl.value.trim();
+                const st = statusFilterEl.value;
+
+                const url = new URL(api("/api/admin/leads"));
+                if (q) url.searchParams.set("q", q);
+                if (st) url.searchParams.set("status", st);
+                url.searchParams.set("limit", "200");
+
+                const res = await fetch(url.toString(), {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !Array.isArray(data.rows)) {
+                    listStatus.textContent = "Помилка завантаження.";
+                    console.error("leads error:", data);
+                    return;
+                }
+
+                if (!data.rows.length) {
+                    listStatus.textContent = "Порожньо.";
+                    return;
+                }
+
+                for (const r of data.rows) {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td>#${r.id}</td>
+            <td class="muted">${(r.created_at || "").replace("T", " ").replace("Z", "")}</td>
+            <td>${r.phone || "-"}</td>
+            <td><span class="pill">${r.status || "-"}</span></td>
+          `;
+                    tr.addEventListener("click", () => openLead(r.id));
+                    leadsBody.appendChild(tr);
+                }
+
+                listStatus.textContent = "Заявок: " + data.rows.length;
+            }
+
+            async function openLead(id) {
+                detailsCard.style.display = "block";
+                saveStatus.textContent = "Завантаження…";
+
+                const res = await fetch(api("/api/admin/leads/" + id), {
+                    headers: { "Authorization": "Bearer " + token }
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.row) {
+                    saveStatus.textContent = "Помилка.";
+                    console.error("lead details error:", data);
+                    return;
+                }
+
+                const row = data.row;
+
+                leadIdEl.textContent = "#" + row.id;
+                leadMetaEl.textContent = (row.created_at || "").replace("T", " ").replace("Z", "") + (row.page ? " • " + row.page : "");
+
+                dName.value = row.name || "";
+                dPhone.value = row.phone || "";
+                dCar.value = row.car || "";
+                dMsg.value = row.message || "";
+                dStatus.value = row.status || "new";
+                dNote.value = row.internal_note || "";
+
+                saveStatus.textContent = "";
+                detailsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+
+            async function saveLead() {
+                const idText = leadIdEl.textContent.replace("#", "").trim();
+                const id = parseInt(idText, 10);
+                if (!id) return;
+
+                saveBtn.disabled = true;
+                saveStatus.textContent = "Збереження…";
+
+                const res = await fetch(api("/api/admin/leads/" + id), {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({
+                        status: dStatus.value,
+                        internal_note: dNote.value
+                    })
+                });
+
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.row) {
+                    saveStatus.textContent = "Помилка збереження.";
+                    console.error("save error:", data);
+                } else {
+                    saveStatus.textContent = "Збережено ✅";
+                    await loadLeads();
+                }
+
+                saveBtn.disabled = false;
+            }
+
+            function logout() {
+                token = "";
+                sessionStorage.removeItem("apex_admin_token");
+                setMode(false);
+            }
+
+            // events
+            loginBtn.addEventListener("click", doLogin);
+            refreshBtn.addEventListener("click", loadLeads);
+            logoutBtn.addEventListener("click", logout);
+            saveBtn.addEventListener("click", saveLead);
+            closeDetailsBtn.addEventListener("click", () => detailsCard.style.display = "none");
+
+            // init
+            setMode(!!token);
+            if (token) loadLeads().catch(() => logout());
+        })();
+    </script>
+
+</body>
+
+</html>
